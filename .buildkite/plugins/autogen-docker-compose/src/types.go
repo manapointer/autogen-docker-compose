@@ -12,11 +12,11 @@ type project struct {
 }
 
 type executorConfig struct {
-	Name             string            `yaml:"-"`
-	WorkingDirectory string            `yaml:"working_directory"`
-	Environment      environmentConfig `yaml:"environment"`
-	DockerConfigs    []dockerConfig    `yaml:"docker"`
-	Parameters       map[string]parameterConfig
+	Name             string                     `yaml:"-"`
+	WorkingDirectory string                     `yaml:"working_directory"`
+	Environment      environmentConfig          `yaml:"environment"`
+	DockerConfigs    []dockerConfig             `yaml:"docker"`
+	Parameters       map[string]parameterConfig `yaml:"parameters"`
 }
 
 type parameterConfig struct {

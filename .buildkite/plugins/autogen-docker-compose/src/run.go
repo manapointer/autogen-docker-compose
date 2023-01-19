@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 
 	composeTypes "github.com/compose-spec/compose-go/types"
 	"gopkg.in/yaml.v3"
@@ -33,7 +34,11 @@ func run(cfg *config) error {
 	var composeProject composeTypes.Project
 
 	for i, dockerConfig := range executor.DockerConfigs {
-		serviceConfig := asComposeServiceConfig(&executor, &dockerConfig, i)
+		serviceConfig, err := asComposeServiceConfig(cfg, &executor, &dockerConfig, i)
+		if err != nil {
+			return err
+		}
+
 		composeProject.Services = append(composeProject.Services, serviceConfig)
 		if i > 0 {
 			if composeProject.Services[0].DependsOn == nil {
@@ -59,7 +64,7 @@ func run(cfg *config) error {
 	return os.WriteFile(cfg.outputPath, buf.Bytes(), 0644)
 }
 
-func asComposeServiceConfig(executorConfig *executorConfig, dockerConfig *dockerConfig, index int) composeTypes.ServiceConfig {
+func asComposeServiceConfig(cfg *config, executorConfig *executorConfig, dockerConfig *dockerConfig, index int) (composeTypes.ServiceConfig, error) {
 	// merge environments, with container environment taking precedence
 	environment := map[string]string{}
 	for key, value := range executorConfig.Environment {
@@ -73,6 +78,11 @@ func asComposeServiceConfig(executorConfig *executorConfig, dockerConfig *docker
 		pairs = append(pairs, key+"="+value)
 	}
 
+	workingDir := ""
+	if index == 0 && executorConfig.WorkingDirectory != "" {
+		workingDir = executorConfig.WorkingDirectory
+	}
+
 	// the first item in the docker configuration is the main container
 	name := dockerConfig.Name
 	if index == 0 {
@@ -81,10 +91,35 @@ func asComposeServiceConfig(executorConfig *executorConfig, dockerConfig *docker
 		name = fmt.Sprintf("%s_%d", executorConfig.Name, index)
 	}
 
+	// TODO: parameter substitution only supported for `image` for now
+	image, err := substituteParameters(cfg.parameters, dockerConfig.Image)
+	if err != nil {
+		return composeTypes.ServiceConfig{}, err
+	}
+
 	return composeTypes.ServiceConfig{
 		Name:        name,
-		Image:       dockerConfig.Image,
+		Image:       image,
 		Command:     composeTypes.ShellCommand(dockerConfig.Command),
 		Environment: composeTypes.NewMappingWithEquals(pairs),
-	}
+		WorkingDir:  workingDir,
+	}, nil
+}
+
+var (
+	parametersRegex = regexp.MustCompile(`<<\s*parameters\.[a-zA-Z0-9_\-]+\s*>>`)
+	idRegex         = regexp.MustCompile(`^<<\sparameters\.([a-zA-Z0-9_\-]+)\s*>>$`)
+)
+
+// TODO: not ideal using two regexes, but this functionality looks to be unimplemented in the regexp library
+func substituteParameters(ctx map[string]string, s string) (res string, err error) {
+	res = parametersRegex.ReplaceAllStringFunc(s, func(p string) string {
+		key := idRegex.FindStringSubmatch(p)[1]
+		value, ok := ctx[key]
+		if !ok {
+			err = fmt.Errorf("parameter not defined: %s", key)
+		}
+		return value
+	})
+	return
 }
