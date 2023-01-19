@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-autogen-docker-compose
+.buildkite/plugins/autogen-docker-compose/dist/autogen-docker-compose
