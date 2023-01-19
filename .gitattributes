@@ -1,0 +1,1 @@
+.buildkite/plugins/autogen-docker-compose/dist/autogen-docker-compose filter=lfs diff=lfs merge=lfs -text
