@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -21,6 +22,7 @@ func run(cfg *config) error {
 	}
 	// only translate the specified executor, which must be of the `docker` type
 	executor, ok := project.Executors[cfg.executor]
+	executor.Name = cfg.executor
 	if !ok {
 		return fmt.Errorf("executor does not exist: %s", cfg.executor)
 	}
@@ -34,24 +36,32 @@ func run(cfg *config) error {
 		serviceConfig := asComposeServiceConfig(&executor, &dockerConfig, i)
 		composeProject.Services = append(composeProject.Services, serviceConfig)
 		if i > 0 {
+			if composeProject.Services[0].DependsOn == nil {
+				composeProject.Services[0].DependsOn = composeTypes.DependsOnConfig{}
+			}
 			composeProject.Services[0].DependsOn[serviceConfig.Name] = composeTypes.ServiceDependency{
 				Condition: composeTypes.ServiceConditionStarted,
 			}
 		}
 	}
 
-	b, err = yaml.Marshal(composeProject)
-	if err != nil {
+	log.Printf("writing compose project to %s\n", cfg.outputPath)
+
+	var buf bytes.Buffer
+
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	enc.Encode(composeProject)
+	if err := enc.Close(); err != nil {
 		return err
 	}
 
-	log.Printf("writing compose project to %s\n", cfg.outputPath)
-	return os.WriteFile(cfg.outputPath, b, 0644)
+	return os.WriteFile(cfg.outputPath, buf.Bytes(), 0644)
 }
 
 func asComposeServiceConfig(executorConfig *executorConfig, dockerConfig *dockerConfig, index int) composeTypes.ServiceConfig {
 	// merge environments, with container environment taking precedence
-	var environment map[string]string
+	environment := map[string]string{}
 	for key, value := range executorConfig.Environment {
 		environment[key] = value
 	}
@@ -63,12 +73,6 @@ func asComposeServiceConfig(executorConfig *executorConfig, dockerConfig *docker
 		pairs = append(pairs, key+"="+value)
 	}
 
-	// compose-go expects a list of string for the command
-	var command composeTypes.ShellCommand
-	if dockerConfig.Command != "" {
-		command = append(command, dockerConfig.Command)
-	}
-
 	// the first item in the docker configuration is the main container
 	name := dockerConfig.Name
 	if index == 0 {
@@ -78,9 +82,9 @@ func asComposeServiceConfig(executorConfig *executorConfig, dockerConfig *docker
 	}
 
 	return composeTypes.ServiceConfig{
-		Name:        executorConfig.Name,
+		Name:        name,
 		Image:       dockerConfig.Image,
-		Command:     composeTypes.ShellCommand{},
+		Command:     composeTypes.ShellCommand(dockerConfig.Command),
 		Environment: composeTypes.NewMappingWithEquals(pairs),
 	}
 }

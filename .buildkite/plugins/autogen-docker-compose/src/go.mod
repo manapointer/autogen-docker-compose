@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/compose-spec/compose-go v1.8.2
+	github.com/mattn/go-shellwords v1.0.12
 	gopkg.in/yaml.v3 v3.0.1
 )
 
