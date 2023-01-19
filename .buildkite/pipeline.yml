@@ -1,7 +1,9 @@
 steps:
-  - command: ls
+  - command: cat docker-compose.yml
     plugins:
       - ./.buildkite/plugins/autogen-docker-compose:
-          input_path: /foo
+          input_path: .circleci/config.yml
+          output_path: docker-compose.yml
+          executor: db
     agents:
       queue: demo

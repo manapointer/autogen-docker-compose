@@ -1,0 +1,14 @@
+executors:
+  default:
+    working_directory: /root
+    environment:
+      FOO: bar
+    docker:
+      - image: buildpack-deps:buster@ha256:c343da4a0b85a4d25ce30529e836a10d46cd4f682fb5326400e4ba274a2f9866
+  db:
+    working_directory: /root
+    environment:
+      FOO: bar
+    docker:
+      - image: buildpack-deps:buster@ha256:c343da4a0b85a4d25ce30529e836a10d46cd4f682fb5326400e4ba274a2f9866
+      - image: postgres:11.4-alpine@sha256:4e1c3bc6bc803d239613375ad8b8525ef8e9bce43ff4d97d1ad21a9ac0251396
