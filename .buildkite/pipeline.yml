@@ -5,5 +5,6 @@ steps:
           input_path: .circleci/config.yml
           output_path: docker-compose.yml
           executor: db
+          parameters: image_tag=buster,image_sha=c343da4a0b85a4d25ce30529e836a10d46cd4f682fb5326400e4ba274a2f9866
     agents:
       queue: demo
