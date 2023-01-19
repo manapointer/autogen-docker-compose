@@ -3,3 +3,5 @@ steps:
     plugins:
       - ./.buildkite/plugins/autogen-docker-compose:
           input_path: /foo
+    agents:
+      queue: demo
