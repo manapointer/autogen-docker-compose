@@ -1,0 +1,9 @@
+name: Autogen Docker Compose
+description: Generates Docker Compose configurations from CircleCI executor definitions
+author: https://github.com/manapointer
+requirements: []
+configuration:
+  properties:
+    input_path:
+      type: string
+  additionalProperties: true
