@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 type config struct {
 	inputPath  string
 	outputPath string
 	executor   string
-	properties map[string]string
+	parameters map[string]string
 }
 
 func cfgFromEnv() (*config, error) {
-	cfg := &config{properties: make(map[string]string)}
+	cfg := &config{parameters: make(map[string]string)}
 
 	require := func(p *string, name string) error {
 		if *p = os.Getenv(name); *p == "" {
@@ -23,14 +24,25 @@ func cfgFromEnv() (*config, error) {
 		return nil
 	}
 
-	if err := require(&cfg.inputPath, "AUTOGEN_INPUT_PATH"); err != nil {
+	if err := require(&cfg.inputPath, "BUILDKITE_PLUGIN_AUTOGEN_DOCKER_COMPOSE_INPUT_PATH"); err != nil {
 		return nil, err
 	}
-	if err := require(&cfg.outputPath, "AUTOGEN_OUTPUT_PATH"); err != nil {
+	if err := require(&cfg.outputPath, "BUILDKITE_PLUGIN_AUTOGEN_DOCKER_COMPOSE_OUTPUT_PATH"); err != nil {
 		return nil, err
 	}
-	if err := require(&cfg.executor, "AUTOGEN_EXECUTOR"); err != nil {
+	if err := require(&cfg.executor, "BUILDKITE_PLUGIN_AUTOGEN_DOCKER_COMPOSE_EXECUTOR"); err != nil {
 		return nil, err
+	}
+
+	// parse parameters from pairs
+	parameters := os.Getenv("BUILDKITE_PLUGIN_AUTOGEN_DOCKER_COMPOSE_PARAMETERS")
+	if parameters != "" {
+		for _, pair := range strings.Split(parameters, ",") {
+			parts := strings.SplitN(pair, "=", 2)
+			key := strings.Trim(parts[0], " ")
+			value := strings.Trim(parts[1], " ")
+			cfg.parameters[key] = value
+		}
 	}
 
 	return cfg, nil

@@ -6,4 +6,13 @@ configuration:
   properties:
     input_path:
       type: string
-  additionalProperties: true
+    output_path:
+      type: string
+    executor:
+      type: string
+    parameters:
+      type: string
+  required:
+    - input_path
+    - output_path
+    - executor
